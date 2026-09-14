@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A fun, interactive color palette generator with particle animations, copy-to-clipboard, and CSS export.">
+    <title>MoodSpark — Palette Generator</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/9f3d7e5a3c.js" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0a12;
+            --bg-darker: #050508;
+            --bg-card: rgba(26, 26, 46, 0.92);
+            --text-primary: #f0f0f0;
+            --text-secondary: #b8b8d8;
+            --text-tertiary: #8080a0;
+            --accent: #8a2be2;
+            --accent-gold: #d4af37;
+            --transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --border-radius: 16px;
+            --border-radius-lg: 24px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        #particle-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+        }
+        .app-container { max-width: 800px; width: 100%; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--accent), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+        }
+        .controls { display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+        .btn {
+            background: linear-gradient(135deg, var(--accent), #9d4dde6);
+            color: white; padding: 0.85rem 2rem; border: none;
+            border-radius: 50px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: var(--transition);
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            box-shadow: 0 8px 25px rgba(138, 43, 226, 0.3);
+            position: relative; overflow: hidden;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(138, 43, 226, 0.4);
+            background: linear-gradient(135deg, #9d4dde6, var(--accent-gold));
+        }
+        .btn:active { transform: translateY(0); }
+        .btn-secondary {
+            background: transparent; border: 2px solid var(--text-tertiary);
+            color: var(--text-secondary); box-shadow: none;
+        }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+        .stats-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg-card); border-radius: var(--border-radius);
+            padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+            border: 1px solid rgba(138, 43, 226, 0.1);
+        }
+        .counter { font-family: 'Fira Code', monospace; font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+        .counter-label { color: var(--text-tertiary); font-size: 0.85rem; }
+        .theme-toggle { display: flex; align-items: center; gap: 0.5rem; }
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--text-tertiary); transition: var(--transition); border-radius: 26px;
+        }
+        .slider:before {
+            content: ""; position: absolute; height: 18px; width: 18px;
+            left: 4px; bottom: 4px; background: white; transition: var(--transition); border-radius: 50%;
+        }
+        input:checked + .slider { background: var(--accent); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .palette-display {
+            background: var(--bg-card); border-radius: var(--border-radius-lg);
+            padding: 2rem; margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(138, 43, 226, 0.1);
+        }
+        .colors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+        }
+        .color-swatch {
+            border-radius: var(--border-radius); overflow: hidden; cursor: pointer;
+            transition: var(--transition); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            aspect-ratio: 1 / 1;
+        }
+        .color-swatch:hover { transform: scale(1.03); }
+        .color-swatch-inner {
+            width: 100%; height: 100%; display: flex;
+            flex-direction: column; justify-content: flex-end;
+            padding: 1rem; transition: var(--transition);
+        }
+        .color-hex { font-family: 'Fira Code', monospace; font-weight: 700; font-size: 1.1rem; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .color-label { font-size: 0.8rem; opacity: 0.8; margin-top: 0.25rem; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+        .color-swatch:hover .color-swatch-inner { justify-content: center; }
+
+        .copy-toast {
+            position: fixed; bottom: 2rem; right: 2rem;
+            background: rgba(26, 26, 46, 0.95); backdrop-filter: blur(10px);
+            border: 1px solid rgba(138, 43, 226, 0.3); color: white;
+            padding: 0.75rem 1.5rem; border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            opacity: 0; transform: translateX(300px);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 1000; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .copy-toast.show { opacity: 1; transform: translateX(0); }
+        .copy-toast i { color: #4ade80; }
+
+        .footer { text-align: center; color: var(--text-tertiary); font-size: 0.85rem; margin-top: 2rem; }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 600px) {
+            .controls { flex-direction: column; align-items: center; }
+            .btn { width: 100%; max-width: 300px; }
+            .stats-bar { flex-direction: column; gap: 1rem; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+    <div class="app-container">
+        <header class="header">
+            <h1>MoodSpark</h1>
+            <p class="subtitle">Click the spark to generate beautiful color palettes for your next project!</p>
+        </header>
+        <div class="stats-bar">
+            <div>
+                <span class="counter-label">Palettes Generated</span>
+                <div class="counter" id="palette-count">0</div>
+            </div>
+            <div class="theme-toggle">
+                <label for="theme-switch">Dark mode</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-switch" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn" id="generate-btn"><i class="fas fa-magic"></i> Generate Palette</button>
+            <button class="btn btn-secondary" id="export-btn"><i class="fas fa-download"></i> Export CSS</button>
+        </div>
+        <div class="palette-display">
+            <div style="text-align: center; color: var(--text-secondary); font-size: 1rem; margin-bottom: 1.5rem;">Click any color swatch to copy its hex code</div>
+            <div class="colors-grid" id="colors-grid"></div>
+        </div>
+        <div class="footer">
+            <p>Created with <span style="color: #e74c3c;">♥</span> as a frontend playground.</p>
+            <p>Built with vanilla HTML, CSS & JavaScript · <a href="https://github.com/Jazblue/mood-spark" target="_blank">View source</a></p>
+        </div>
+    </div>
+    <div class="copy-toast" id="copy-toast"><i class="fas fa-check-circle"></i> Copied to clipboard!</div>
+
+    <script>
+        const THEMES = {
+            dark: { bg: '#0a0a12', card: 'rgba(26, 26, 46, 0.92)', textPrimary: '#f0f0f0', textSecondary: '#b8b8d8', textTertiary: '#8080a0', accent: '#8a2be2' },
+            light: { bg: '#f8f4ff', card: 'rgba(255, 255, 255, 0.85)', textPrimary: '#2d1b69', textSecondary: '#5a4a8a', textTertiary: '#8a7ab5', accent: '#8a2be2' }
+        };
+        let currentTheme = 'dark';
+        let paletteCount = 0;
+        const MAX_COLORS = 5;
+        const COLOR_NAMES = ['Primary', 'Secondary', 'Accent', 'Background', 'Highlight'];
+
+        function random(min, max) { return Math.random() * (max - min) + min; }
+
+        function generatePalette() {
+            const colors = [];
+            const hueBase = Math.floor(random(0, 360));
+            for (let i = 0; i < MAX_COLORS; i++) {
+                const hue = (hueBase + (i * 60)) % 360;
+                const saturation = Math.floor(random(50, 90));
+                const lightness = Math.floor(random(30, 70));
+                colors.push(hslToHex(hue, saturation, lightness));
+            }
+            return colors;
+        }
+
+        function hslToHex(h, s, l) {
+            h /= 360; s /= 100; l /= 100;
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q - (q - p) * (2/3 - t) * 6;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            let r, g, b;
+            if (s === 0) { r = g = b = l; }
+            else {
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1/3);
+            }
+            return '#' + Math.round(r * 255).toString(16).padStart(2, '0') +
+                   Math.round(g * 255).toString(16).padStart(2, '0') +
+                   Math.round(b * 255).toString(16).padStart(2, '0').toUpperCase();
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+        }
+
+        function getContrast(hex) {
+            const rgb = hexToRgb(hex);
+            if (!rgb) return '#000';
+            const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+            return luminance > 0.5 ? '#000' : '#fff';
+        }
+
+        function createColorSwatch(color, index) {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.dataset.hex = color;
+            const contrastColor = getContrast(color);
+            swatch.innerHTML = `<div class="color-swatch-inner" style="background: ${color}; color: ${contrastColor};">
+                <span class="color-hex">${color}</span>
+                <span class="color-label">${COLOR_NAMES[index]}</span>
+            </div>`;
+            swatch.addEventListener('click', () => copyToClipboard(color, swatch));
+            return swatch;
+        }
+
+        function renderPalette(colors) {
+            const grid = document.getElementById('colors-grid');
+            grid.innerHTML = '';
+            colors.forEach((color, index) => grid.appendChild(createColorSwatch(color, index)));
+        }
+
+        function copyToClipboard(text, element) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(text);
+                element.style.transform = 'scale(0.95)';
+                setTimeout(() => element.style.transform = 'scale(1)', 150);
+            }).catch(err => {
+                const textarea = document.createElement('textarea');
+                textarea.value = text; document.body.appendChild(textarea);
+                textarea.select(); document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast(text);
+            });
+        }
+
+        function showToast(text) {
+            const toast = document.getElementById('copy-toast');
+            toast.innerHTML = `<i class="fas fa-check-circle"></i> Copied ${text} to clipboard!`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function exportCSS(colors) {
+            const cssVariables = colors.map((color, i) => `  --color-${i+1}: ${color};`).join('\n');
+            const cssContent = `:root {\n${cssVariables}\n}`;
+            const blob = new Blob([cssContent], { type: 'text/css' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'mood-spark-palette.css';
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        class ParticleSystem {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.particles = [];
+                this.mouse = { x: 0, y: 0 };
+                this.init();
+            }
+            init() {
+                const resizeCanvas = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                };
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                for (let i = 0; i < 80; i++) this.particles.push(this.createParticle());
+                window.addEventListener('mousemove', (e) => {
+                    this.mouse.x = e.clientX;
+                    this.mouse.y = e.clientY;
+                });
+                this.animate();
+            }
+            createParticle() {
+                return {
+                    x: Math.random() * this.canvas.width, y: Math.random() * this.canvas.height,
+                    size: Math.random() * 2 + 1, speedX: (Math.random() - 0.5) * 0.5,
+                    speedY: (Math.random() - 0.5) * 0.5, color: this.getRandomColor()
+                };
+            }
+            getRandomColor() {
+                const colors = ['#8a2be2', '#d4af37', '#4a90e2', '#e63946'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            update() {
+                for (let i = 0; i < this.particles.length; i++) {
+                    const p = this.particles[i];
+                    const dx = this.mouse.x - p.x;
+                    const dy = this.mouse.y - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 100) { p.speedX += dx * 0.0005; p.speedY += dy * 0.0005; }
+                    p.x += p.speedX; p.y += p.speedY;
+                    p.speedX *= 0.98; p.speedY *= 0.98;
+                    if (p.x < 0) p.x = this.canvas.width;
+                    if (p.x > this.canvas.width) p.x = 0;
+                    if (p.y < 0) p.y = this.canvas.height;
+                    if (p.y > this.canvas.height) p.y = 0;
+                }
+            }
+            draw() {
+                this.ctx.fillStyle = currentTheme === 'dark' ? 'rgba(10, 10, 18, 0.05)' : 'rgba(248, 244, 255, 0.1)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                for (const p of this.particles) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.fill();
+                    for (const q of this.particles) {
+                        const dist = Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
+                        if (dist < 100) {
+                            const opacity = 1 - dist / 100;
+                            this.ctx.strokeStyle = `rgba(138, 43, 226, ${opacity * 0.2})`;
+                            this.ctx.lineWidth = 1;
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(p.x, p.y);
+                            this.ctx.lineTo(q.x, q.y);
+                            this.ctx.stroke();
+                        }
+                    }
+                }
+            }
+            animate() { this.update(); this.draw(); requestAnimationFrame(() => this.animate()); }
+        }
+
+        function applyTheme(theme) {
+            const root = document.documentElement;
+            root.style.setProperty('--bg-dark', THEMES[theme].bg);
+            root.style.setProperty('--bg-card', THEMES[theme].card);
+            root.style.setProperty('--text-primary', THEMES[theme].textPrimary);
+            root.style.setProperty('--text-secondary', THEMES[theme].textSecondary);
+            root.style.setProperty('--text-tertiary', THEMES[theme].textTertiary);
+            root.style.setProperty('--accent', THEMES[theme].accent);
+        }
+
+        document.getElementById('theme-switch').addEventListener('change', (e) => {
+            currentTheme = e.target.checked ? 'dark' : 'light';
+            applyTheme(currentTheme);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('particle-canvas');
+            new ParticleSystem(canvas);
+            const colors = generatePalette();
+            renderPalette(colors);
+            updateCounter();
+            document.getElementById('generate-btn').addEventListener('click', () => {
+                renderPalette(generatePalette());
+                updateCounter();
+            });
+            document.getElementById('export-btn').addEventListener('click', () => {
+                const colorElements = document.querySelectorAll('.color-swatch');
+                const colors = Array.from(colorElements).map(el => el.dataset.hex);
+                exportCSS(colors);
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && e.target.tagName !== 'BUTTON') {
+                    e.preventDefault();
+                    document.getElementById('generate-btn').click();
+                }
+            });
+        });
+
+        function updateCounter() {
+            paletteCount++;
+            document.getElementById('palette-count').textContent = paletteCount;
+        }
+    </script>
+</body>
+</html>
