@@ -27,7 +27,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         body {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
             min-height: 100vh;
@@ -125,8 +125,8 @@
             flex-direction: column; justify-content: flex-end;
             padding: 1rem; transition: var(--transition);
         }
-        .color-hex { font-family: 'Fira Code', monospace; font-weight: 700; font-size: 1.1rem; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-        .color-label { font-size: 0.8rem; opacity: 0.8; margin-top: 0.25rem; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+        .color-hex { font-family: 'Fira Code', monospace; font-weight: 700; font-size: 1.1rem; }
+        .color-label { font-size: 0.8rem; opacity: 0.8; margin-top: 0.25rem; }
         .color-swatch:hover .color-swatch-inner { justify-content: center; }
 
         .copy-toast {
@@ -179,7 +179,38 @@
         </div>
         <div class="palette-display">
             <div style="text-align: center; color: var(--text-secondary); font-size: 1rem; margin-bottom: 1.5rem;">Click any color swatch to copy its hex code</div>
-            <div class="colors-grid" id="colors-grid"></div>
+            <div class="colors-grid" id="colors-grid">
+                <div class="color-swatch" data-hex="#8A2BE2">
+                    <div class="color-swatch-inner" style="background: #8A2BE2; color: #FFFFFF;">
+                        <span class="color-hex">#8A2BE2</span>
+                        <span class="color-label">Primary</span>
+                    </div>
+                </div>
+                <div class="color-swatch" data-hex="#D4AF37">
+                    <div class="color-swatch-inner" style="background: #D4AF37; color: #000000;">
+                        <span class="color-hex">#D4AF37</span>
+                        <span class="color-label">Secondary</span>
+                    </div>
+                </div>
+                <div class="color-swatch" data-hex="#4A90E2">
+                    <div class="color-swatch-inner" style="background: #4A90E2; color: #FFFFFF;">
+                        <span class="color-hex">#4A90E2</span>
+                        <span class="color-label">Accent</span>
+                    </div>
+                </div>
+                <div class="color-swatch" data-hex="#F8F9FA">
+                    <div class="color-swatch-inner" style="background: #F8F9FA; color: #000000;">
+                        <span class="color-hex">#F8F9FA</span>
+                        <span class="color-label">Background</span>
+                    </div>
+                </div>
+                <div class="color-swatch" data-hex="#1A1A2E">
+                    <div class="color-swatch-inner" style="background: #1A1A2E; color: #FFFFFF;">
+                        <span class="color-hex">#1A1A2E</span>
+                        <span class="color-label">Highlight</span>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="footer">
             <p>Created with <span style="color: #e74c3c;">♥</span> as a frontend playground.</p>
@@ -251,11 +282,10 @@
             swatch.className = 'color-swatch';
             swatch.dataset.hex = color;
             const contrastColor = getContrast(color);
-            swatch.innerHTML = `<div class="color-swatch-inner" style="background: ${color}; color: ${contrastColor};">
-                <span class="color-hex">${color}</span>
-                <span class="color-label">${COLOR_NAMES[index]}</span>
-            </div>`;
-            swatch.addEventListener('click', () => copyToClipboard(color, swatch));
+            swatch.innerHTML = '<div class="color-swatch-inner" style="background: ' + color + '; color: ' + contrastColor + ';">' +
+                '<span class="color-hex">' + color + '</span>' +
+                '<span class="color-label">' + COLOR_NAMES[index] + '</span>' +
+            '</div>';
             return swatch;
         }
 
@@ -281,14 +311,16 @@
 
         function showToast(text) {
             const toast = document.getElementById('copy-toast');
-            toast.innerHTML = `<i class="fas fa-check-circle"></i> Copied ${text} to clipboard!`;
+            toast.innerHTML = '<i class="fas fa-check-circle"></i> Copied ' + text + ' to clipboard!';
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
         function exportCSS(colors) {
-            const cssVariables = colors.map((color, i) => `  --color-${i+1}: ${color};`).join('\n');
-            const cssContent = `:root {\n${cssVariables}\n}`;
+            const cssVariables = colors.map(function(color, i) {
+                return '  --color-' + (i + 1) + ': ' + color + ';';
+            }).join('\n');
+            const cssContent = ':root {\n' + cssVariables + '\n}';
             const blob = new Blob([cssContent], { type: 'text/css' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -321,9 +353,12 @@
             }
             createParticle() {
                 return {
-                    x: Math.random() * this.canvas.width, y: Math.random() * this.canvas.height,
-                    size: Math.random() * 2 + 1, speedX: (Math.random() - 0.5) * 0.5,
-                    speedY: (Math.random() - 0.5) * 0.5, color: this.getRandomColor()
+                    x: Math.random() * this.canvas.width,
+                    y: Math.random() * this.canvas.height,
+                    size: Math.random() * 2 + 1,
+                    speedX: (Math.random() - 0.5) * 0.5,
+                    speedY: (Math.random() - 0.5) * 0.5,
+                    color: this.getRandomColor()
                 };
             }
             getRandomColor() {
@@ -357,7 +392,7 @@
                         const dist = Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
                         if (dist < 100) {
                             const opacity = 1 - dist / 100;
-                            this.ctx.strokeStyle = `rgba(138, 43, 226, ${opacity * 0.2})`;
+                            this.ctx.strokeStyle = 'rgba(138, 43, 226, ' + (opacity * 0.2) + ')';
                             this.ctx.lineWidth = 1;
                             this.ctx.beginPath();
                             this.ctx.moveTo(p.x, p.y);
@@ -380,27 +415,38 @@
             root.style.setProperty('--accent', THEMES[theme].accent);
         }
 
-        document.getElementById('theme-switch').addEventListener('change', (e) => {
+        document.getElementById('theme-switch').addEventListener('change', function(e) {
             currentTheme = e.target.checked ? 'dark' : 'light';
             applyTheme(currentTheme);
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             const canvas = document.getElementById('particle-canvas');
             new ParticleSystem(canvas);
-            const colors = generatePalette();
-            renderPalette(colors);
+
+            // Event delegation for color swatches
+            document.getElementById('colors-grid').addEventListener('click', function(e) {
+                const swatch = e.target.closest('.color-swatch');
+                if (swatch) {
+                    copyToClipboard(swatch.dataset.hex, swatch);
+                }
+            });
+
             updateCounter();
-            document.getElementById('generate-btn').addEventListener('click', () => {
+
+            document.getElementById('generate-btn').addEventListener('click', function() {
                 renderPalette(generatePalette());
                 updateCounter();
             });
-            document.getElementById('export-btn').addEventListener('click', () => {
+
+            document.getElementById('export-btn').addEventListener('click', function() {
                 const colorElements = document.querySelectorAll('.color-swatch');
-                const colors = Array.from(colorElements).map(el => el.dataset.hex);
+                const colors = Array.from(colorElements).map(function(el) { return el.dataset.hex; });
                 exportCSS(colors);
             });
-            document.addEventListener('keydown', (e) => {
+
+            // Keyboard shortcut: Space to generate
+            document.addEventListener('keydown', function(e) {
                 if (e.code === 'Space' && e.target.tagName !== 'BUTTON') {
                     e.preventDefault();
                     document.getElementById('generate-btn').click();
