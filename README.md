@@ -101,5 +101,9 @@ MIT License — feel free to fork, modify, and use this project however you like
 
 Created by [Jason Harvey](https://github.com/Jazblue) — IT Cloud Engineer aspirant, Manchester United fan, and creative developer based in Chatham, UK.
 
+## 🤖 AI Credits
+
+This project was created with the assistance of **Hermes Agent** (by Nous Research), an AI coding agent, using a prompt generated with **ChatGPT**. All design decisions, feature selection, and code refinement were guided by the author.
+
 [![GitHub](https://img.shields.io/badge/GitHub-Jazblue-black?logo=github)](https://github.com/Jazblue)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-blue?logo=githubpages)](https://jazblue.github.io/mood-spark/)
